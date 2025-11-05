@@ -117,7 +117,7 @@ void AutoRemove::wait_for_next_scan() {
         }
 
         const auto remaining = scan_interval_minutes_ * 60 - timer_.elapsed();
-        const auto wait_time = std::min(remaining, 2ULL);
+        const auto wait_time = std::min(remaining, decltype(remaining)(2));
         std::this_thread::sleep_for(std::chrono::seconds(wait_time));
     }
 }
