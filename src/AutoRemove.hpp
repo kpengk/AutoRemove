@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "elapsed_timer.hpp"
+#include "ElapsedTimer.hpp"
 
 #include <atomic>
 #include <filesystem>

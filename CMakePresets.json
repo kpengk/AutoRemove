@@ -10,7 +10,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "nlohmann_json_DIR": "D:/vcpkg/installed/x64-windows/share/nlohmann_json"
       },
       "condition": {
         "type": "equals",
