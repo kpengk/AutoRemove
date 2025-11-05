@@ -30,9 +30,6 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        std::cout << "AutoRemove Tool Started.\n";
-        std::cout << "Press Ctrl+C to stop.\n";
-
         auto_remove->run();
     } catch (const std::exception& ex) {
         std::cerr << "Error: " << ex.what() << std::endl;

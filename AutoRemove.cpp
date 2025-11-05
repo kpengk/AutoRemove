@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <regex>
 #include <sstream>
 #include <thread>
 
@@ -42,7 +43,13 @@ bool AutoRemove::load_config() {
                 const size_t max_files_count = path_config["max_files_count"];
                 const size_t min_file_age_hours = path_config["min_file_age_hours"];
 
-                monitor_configs_.emplace_back(path, max_files_count, min_file_age_hours);
+                // Read wildcard mode (optional)
+                std::string wildcard_pattern;
+                if (path_config.contains("wildcard_pattern")) {
+                    wildcard_pattern = to_regex_pattern(path_config["wildcard_pattern"]);
+                }
+
+                monitor_configs_.emplace_back(path, max_files_count, min_file_age_hours, std::move(wildcard_pattern));
             }
         }
 
@@ -65,6 +72,7 @@ void AutoRemove::run() {
     log(LogLevel::INFO, "AutoRemove started");
 
     while (running_) {
+        log(LogLevel::INFO, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
         log(LogLevel::INFO, "Starting scan cycle...");
         timer_.restart();
 
@@ -88,6 +96,19 @@ void AutoRemove::stop() {
     running_.store(false);
 }
 
+
+std::string AutoRemove::to_regex_pattern(const std::string& pattern) {
+    std::string regex_pattern;
+    for (char c : pattern) {
+        if (c == '*') {
+            regex_pattern += ".*";
+        } else {
+            regex_pattern += c;
+        }
+    }
+    return regex_pattern;
+}
+
 void AutoRemove::wait_for_next_scan() {
     log(LogLevel::INFO, "Wait for the next scan...");
     while (running_.load()) {
@@ -102,7 +123,7 @@ void AutoRemove::wait_for_next_scan() {
 }
 
 void AutoRemove::scan_path(const MonitorConfig& config) {
-    fs::path monitor_path(config.path);
+    const fs::path monitor_path(config.path);
 
     if (!fs::exists(monitor_path)) {
         log(LogLevel::WARNING, "Path does not exist: " + config.path);
@@ -114,7 +135,8 @@ void AutoRemove::scan_path(const MonitorConfig& config) {
         return;
     }
 
-    auto files = get_files(monitor_path);
+    log(LogLevel::INFO, "Scan path: " + config.path);
+    auto files = get_files(monitor_path, config.wildcard_pattern);
 
     if (files.size() > config.max_files_count) {
         log(LogLevel::INFO, "Path " + config.path + " has " + std::to_string(files.size()) + " items (max: "
@@ -123,12 +145,43 @@ void AutoRemove::scan_path(const MonitorConfig& config) {
     }
 }
 
-std::vector<fs::directory_entry> AutoRemove::get_files(const fs::path& path) {
+std::vector<fs::directory_entry> AutoRemove::get_files(const fs::path& path, const std::string& pattern) {
     std::vector<fs::directory_entry> files;
-    for (const auto& entry : fs::directory_iterator(path)) {
-        files.push_back(entry);
+
+    try {
+        for (const auto& entry : fs::directory_iterator(path)) {
+            // If there is no wildcard mode, include all files
+            if (pattern.empty()) {
+                files.push_back(entry);
+                continue;
+            }
+
+            try {
+                // Check whether the file name matches the wildcard pattern
+                const std::string filename = entry.path().filename().string();
+                const std::regex re(pattern, std::regex_constants::icase);
+                if (std::regex_match(filename, re)) {
+                    files.push_back(entry);
+                }
+            } catch (const std::regex_error& ex) {
+                log(LogLevel::ERROR, std::string("Invalid wildcard pattern: ") + ex.what());
+            }
+        }
+    } catch (const fs::filesystem_error& ex) {
+        log(LogLevel::ERROR, "Error accessing path " + path.string() + ": " + ex.what());
     }
+
     return files;
+}
+
+bool AutoRemove::matches_wildcard(const std::string& filename, const std::string& regex_pattern) {
+    try {
+        const std::regex re(regex_pattern, std::regex_constants::icase);
+        return std::regex_match(filename, re);
+    } catch (const std::regex_error& ex) {
+        log(LogLevel::ERROR, std::string("Invalid wildcard pattern: ") + ex.what());
+        return false;
+    }
 }
 
 void AutoRemove::remove_old_files(const MonitorConfig& config, std::vector<fs::directory_entry> files) {
