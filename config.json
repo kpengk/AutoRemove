@@ -1,0 +1,20 @@
+{
+  "scan_interval_minutes": 60,
+  "monitor_paths": [
+    {
+      "path": "C:/temp/logs",
+      "max_files_count": 100,
+      "min_file_age_hours": 24
+    },
+    {
+      "path": "D:/backups",
+      "max_files_count": 50,
+      "min_file_age_hours": 168
+    },
+    {
+      "path": "/var/tmp",
+      "max_files_count": 200,
+      "min_file_age_hours": 72
+    }
+  ]
+}
