@@ -96,12 +96,14 @@ void AutoRemove::stop() {
     running_.store(false);
 }
 
-
 std::string AutoRemove::to_regex_pattern(const std::string& pattern) {
     std::string regex_pattern;
     for (char c : pattern) {
         if (c == '*') {
             regex_pattern += ".*";
+        } else if (std::string_view(".^$+|()[]{}").find(c) != std::string_view::npos) {
+            regex_pattern += '\\';
+            regex_pattern += c;
         } else {
             regex_pattern += c;
         }
