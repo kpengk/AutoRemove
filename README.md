@@ -55,7 +55,13 @@ cmake --build . --config Release
   "scan_interval_minutes": 1,
   "monitor_paths": [
     {
-      "path": "D:/temp",
+      "path": "D:/temp/path_1",
+      "max_files_count": 10,
+      "min_file_age_hours": 24,
+      "wildcard_pattern": "*.log"
+    },
+    {
+      "path": "D:/temp/path_2",
       "max_files_count": 10,
       "min_file_age_hours": 24,
       "wildcard_pattern": "*.log"
